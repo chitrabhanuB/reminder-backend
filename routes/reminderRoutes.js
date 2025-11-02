@@ -1,19 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const Reminder = require('../models/reminder'); // must exist at backend/models/reminder.js
+const Reminder = require('../models/reminder');
 
-// ✅ Create a new reminder
-// ✅ Create a new reminder
-// ✅ Create a new reminder
+// ✅ Create new reminder
 router.post('/', async (req, res) => {
   try {
-    console.log("📩 [DEBUG] Reminder POST route hit");
-    console.log("📦 Request body:", req.body);
+    console.log("📩 [POST] /api/reminders hit");
+    console.log("📦 Body:", req.body);
 
     const { user_id, bill_name, amount, due_date, priority, frequency } = req.body;
+
     if (!user_id || !bill_name || !due_date) {
-      console.log("⚠️ Missing required fields");
-      return res.status(400).json({ message: 'user_id, bill_name and due_date are required' });
+      return res.status(400).json({ success: false, message: 'user_id, bill_name, and due_date are required' });
     }
 
     const reminder = new Reminder({
@@ -27,22 +25,29 @@ router.post('/', async (req, res) => {
     });
 
     await reminder.save();
-    console.log("✅ Reminder saved successfully:", reminder);
     return res.status(201).json({ success: true, reminder });
   } catch (err) {
-    console.error('❌ POST /api/reminders error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.error('❌ POST /api/reminders error:', err.message);
+    return res.status(500).json({ success: false, message: 'Server error while creating reminder' });
   }
 });
 
+// ✅ Fetch all reminders for a user
+router.get('/:user_id', async (req, res) => {
+  try {
+    const reminders = await Reminder.find({ user_id: req.params.user_id }).sort({ due_date: 1 });
+    return res.status(200).json({ success: true, reminders });
+  } catch (err) {
+    console.error('❌ Error fetching reminders:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to fetch reminders' });
+  }
+});
 
-// ✅ Fetch reminders for a user
-// ✅ Get reminders due today for a specific user
+// ✅ Fetch today's reminders
 router.get('/today/:user_id', async (req, res) => {
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -52,50 +57,35 @@ router.get('/today/:user_id', async (req, res) => {
       is_paid: false,
     });
 
-    res.json({ success: true, reminders });
-  } catch (error) {
-    console.error('Error fetching today’s reminders:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(200).json({ success: true, reminders });
+  } catch (err) {
+    console.error('❌ Error fetching today’s reminders:', err.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-
-// ✅ Delete a reminder by ID
-router.delete("/:id", async (req, res) => {
+// ✅ Delete a reminder
+router.delete('/:id', async (req, res) => {
   try {
     const reminder = await Reminder.findByIdAndDelete(req.params.id);
-    if (!reminder) {
-      return res.status(404).json({ success: false, message: "Reminder not found" });
-    }
-    console.log(`🗑️ Reminder deleted successfully: ${req.params.id}`);
-    res.json({ success: true, message: "Reminder deleted successfully" });
-  } catch (error) {
-    console.error("❌ Error deleting reminder:", error.message);
-    res.status(500).json({ success: false, message: "Failed to delete reminder" });
+    if (!reminder) return res.status(404).json({ success: false, message: 'Reminder not found' });
+    return res.json({ success: true, message: 'Reminder deleted successfully' });
+  } catch (err) {
+    console.error('❌ Error deleting reminder:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to delete reminder' });
   }
 });
-
 
 // ✅ Mark reminder as paid
 router.put('/:id/mark-paid', async (req, res) => {
   try {
-    const reminder = await Reminder.findByIdAndUpdate(
-      req.params.id,
-      { is_paid: true, paid_at: new Date() },
-      { new: true }
-    );
-
-    if (!reminder) {
-      return res.status(404).json({ success: false, message: 'Reminder not found' });
-    }
-
-    console.log(`✅ Reminder marked as paid: ${reminder._id}`);
-    res.json({ success: true, reminder });
-  } catch (error) {
-    console.error('❌ Error marking reminder as paid:', error);
-    res.status(500).json({ success: false, message: 'Failed to mark reminder as paid' });
+    const reminder = await Reminder.findByIdAndUpdate(req.params.id, { is_paid: true }, { new: true });
+    if (!reminder) return res.status(404).json({ success: false, message: 'Reminder not found' });
+    return res.json({ success: true, reminder });
+  } catch (err) {
+    console.error('❌ Error marking as paid:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to update reminder' });
   }
 });
-
 
 module.exports = router;
