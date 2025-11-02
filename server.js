@@ -16,24 +16,30 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 // ✅ CORS setup
 app.use(
   cors({
-    origin: ["https://reminder-frontend1.vercel.app"],
+    origin: [
+      "http://localhost:8080", // ✅ allow local dev frontend
+      "https://reminder-frontend1.vercel.app", // ✅ your Vercel deployed frontend
+      /\.vercel\.app$/ // ✅ allow all preview deployments
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
 
 // ✅ Body parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// ✅ Root route (to avoid Unexpected token '<')
-app.get("/", (req, res) => {
-  res.send("✅ Backend is live and reachable");
-});
-
-// ✅ Log requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  res.header("Access-Control-Allow-Origin", [
+    "http://localhost:8080",
+    "https://reminder-frontend1.vercel.app",
+  ].includes(req.headers.origin) ? req.headers.origin : "*");
+
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
   next();
 });
 
