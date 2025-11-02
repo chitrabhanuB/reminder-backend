@@ -9,6 +9,9 @@ const Reminder = require("./models/reminder");
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 // Initialize Supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);

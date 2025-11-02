@@ -5,13 +5,21 @@ const Reminder = require('../models/reminder');
 // ✅ Create new reminder
 router.post('/', async (req, res) => {
   try {
-    console.log("📩 [POST] /api/reminders hit");
-    console.log("📦 Body:", req.body);
+    console.log("📩 [DEBUG] Reminder POST route hit");
+    console.log("📦 Full Request body received:", req.body);
+
+    // check if backend is actually getting body
+    if (!req.body) {
+      console.log("❌ req.body is undefined or empty");
+      return res.status(400).json({ message: "Empty request body" });
+    }
 
     const { user_id, bill_name, amount, due_date, priority, frequency } = req.body;
+    console.log("📋 Extracted fields:", { user_id, bill_name, amount, due_date, priority, frequency });
 
     if (!user_id || !bill_name || !due_date) {
-      return res.status(400).json({ success: false, message: 'user_id, bill_name, and due_date are required' });
+      console.log("⚠️ Missing required fields");
+      return res.status(400).json({ message: 'user_id, bill_name and due_date are required' });
     }
 
     const reminder = new Reminder({
@@ -25,12 +33,14 @@ router.post('/', async (req, res) => {
     });
 
     await reminder.save();
+    console.log("✅ Reminder saved successfully:", reminder);
     return res.status(201).json({ success: true, reminder });
   } catch (err) {
-    console.error('❌ POST /api/reminders error:', err.message);
-    return res.status(500).json({ success: false, message: 'Server error while creating reminder' });
+    console.error("❌ POST /api/reminders error:", err.message, err.stack);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 // ✅ Fetch all reminders for a user
 router.get('/:user_id', async (req, res) => {
